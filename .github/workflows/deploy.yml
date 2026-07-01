@@ -66,7 +66,7 @@ jobs:
       - name: build docker image
         run: |
           docker build -t ${{DOCKERHUB_USERNAME}}/cicd-artifacts-sonar-docker:latest .
-          docker tag ${{secrets.DOCKERHUB_USERNAME}}/cicd-artifacts-sonar-docker:latest ${{secrets.DOCKERHUB_USERNAME}}/cicd-artifacts-sonar-docker:${{github.sha}}
+          docker tag ${{secrets.DOCKERHUB_USERNAME}}/cicd-artifacts-sonar-docker:latest ${{secrets.DOCKERHUB_USERNAME}}/cicd-artifacts          -sonar-docker:${{github.sha}}
 
       - name: push to dockerhub
         run: |
