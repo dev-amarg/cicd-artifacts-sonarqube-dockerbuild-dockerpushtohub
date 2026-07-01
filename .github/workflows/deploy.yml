@@ -58,6 +58,11 @@ jobs:
     needs: download-code
 
     steps:
+      - name: download source code as artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: source-code
+          path: .
       - name: login to docker
         uses: docker/login-action@v3
         with:
@@ -66,9 +71,9 @@ jobs:
 
       - name: build docker image
         run: |
-          docker build -t ${{secrets.DOCKERHUB_USERNAME}}/cicd-artifacts-sonar-docker:latest .
-          docker tag ${{secrets.DOCKERHUB_USERNAME}}/cicd-artifacts-sonar-docker:latest ${{secrets.DOCKERHUB_USERNAME}}/cicd-artifacts          -sonar-docker:${{github.sha}}
-
+          docker build -t ${{secrets.DOCKERHUB_USERNAME}}/cicd-artifacts-sonar-docker:latest . 
+          docker tag ${{secrets.DOCKERHUB_USERNAME}}/cicd-artifacts-sonar-docker:latest ${{secrets.DOCKERHUB_USERNAME}}/cicd-artifacts          
+          -sonar-docker:${{github.sha}}
       - name: push to dockerhub
         run: |
           docker push ${{secrets.DOCKERHUB_USERNAME}}/cicd-artifacts-sonar-docker:latest
