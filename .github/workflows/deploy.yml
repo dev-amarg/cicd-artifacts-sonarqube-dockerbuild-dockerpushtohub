@@ -1,0 +1,131 @@
+name: deploy with artiacts-multijobs-sonarqube-automate build docker image and push to docker hub
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+
+jobs:
+  download-code:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: download source code
+        uses: actions/checkout@v4
+
+      - name: upload source code as atifact
+        use: actions/upload-artifact@v4
+        with:
+          name: source-code
+          path: .
+
+  build-install:
+    runs-on: ubuntu-latest
+    needs: download-code
+
+    steps:
+      - name: download source code as artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: source-code
+          path: .
+
+      - name: setup node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.20.8'
+
+      - name: install dependencies
+        run: npm ci
+
+      - name: build project
+        run: npm run build
+
+      - name: upload dist folder as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-folder
+          path: ./dist
+
+  docker-login:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: login to docker
+        uses: docker/login-action@v3
+        with:
+          username: ${{secrets.DOCKERHUB_USERNAME}}
+          password: ${{secrets.DOCKERhUB_TOKEN}}
+
+      - name: build docker image
+        run: |
+          docker build -t ${{DOCKERHUB_USERNAME}}/cicd-artifacts-sonar-docker:latest .
+          docker tag ${{secrets.DOCKERHUB_USERNAME}}/cicd-artifacts-sonar-docker:latest ${{secrets.DOCKERHUB_USERNAME}}/cicd-artifacts-sonar-docker:${{github.sha}}
+
+      - name: push to dockerhub
+        run: |
+          docker push ${{secrets.DOCKERHUB_USERNAME}}/cicd-artifacts-sonar-docker:latest
+          docker push ${{secrets.DOCKERHUB_USERNAME}}/cicd-artifacts-sonar-docker:${{github.sha}}
+
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: install-build
+
+    steps:
+      - name: download dist folder as artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-folder
+          path: ./dist
+
+    - name: deploy to github pages
+      uses: peaceiris/actions-gh-pages@v4
+      with:
+        github_token: ${{secrets.GITHUB_TOKEN}}
+        publish_dir: ./
+        publish_branch: ./dist
+
+  sonar-scan:
+    runs-on: ubuntu-latest
+    needs: download-code
+
+    steps:
+      - name: download source code as artifact for sonarqube scan
+        uses: actions/download-artifact@v4
+        with:
+          name: source-code
+          path: .
+
+      - name: sonar scan
+        uses: SonarSource/sonarqube-scan-action@v4
+        with: 
+          projectBaseDir: .
+        env:
+          SONAR_TOKEN: {{secrets.SONAR_TOKEN}}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
